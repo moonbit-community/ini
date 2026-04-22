@@ -23,7 +23,16 @@ priv enum ReadingValueState {
   None
   SingleQuote
   DoubleQuote
-} derive(Show)
+}
+
+///|
+impl Show for ReadingValueState with output(self, logger) {
+  match self {
+    ReadingValueState::None => logger.write_string("None")
+    ReadingValueState::SingleQuote => logger.write_string("SingleQuote")
+    ReadingValueState::DoubleQuote => logger.write_string("DoubleQuote")
+  }
+}
 
 ///|
 priv enum ParsePhase {
@@ -32,7 +41,22 @@ priv enum ParsePhase {
   ReadingKey
   ReadingValue(ReadingValueState)
   InComment
-} derive(Show)
+}
+
+///|
+impl Show for ParsePhase with output(self, logger) {
+  match self {
+    ParsePhase::Start => logger.write_string("Start")
+    ParsePhase::ReadingSection => logger.write_string("ReadingSection")
+    ParsePhase::ReadingKey => logger.write_string("ReadingKey")
+    ParsePhase::ReadingValue(state) => {
+      logger.write_string("ReadingValue(")
+      state.output(logger)
+      logger.write_string(")")
+    }
+    ParsePhase::InComment => logger.write_string("InComment")
+  }
+}
 
 ///|
 priv struct EscapeStateHex {

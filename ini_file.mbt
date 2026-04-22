@@ -2,13 +2,33 @@
 priv enum Section {
   Global
   NamedSection(String)
-} derive(Eq, Hash, Show)
+} derive(Eq, Hash)
+
+///|
+impl Show for Section with output(self, logger) {
+  match self {
+    Section::Global => logger.write_string("Global")
+    Section::NamedSection(name) => {
+      logger.write_string("NamedSection(")
+      name.output(logger)
+      logger.write_string(")")
+    }
+  }
+}
 
 ///|
 priv struct Key(String) derive(Eq, Hash)
 
 ///|
-priv struct Value(String) derive(Show)
+priv struct Value(String)
+
+///|
+impl Show for Value with output(self, logger) {
+  let Value(value) = self
+  logger.write_string("Value(")
+  value.output(logger)
+  logger.write_string(")")
+}
 
 ///|
 struct IniFile {

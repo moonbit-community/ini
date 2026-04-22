@@ -277,7 +277,7 @@ test "INIFile::get/basic_functionality" {
 test "INIFile::get/case_sensitivity" {
   let ini = {
     let temp = IniFile::new(is_case_sensitive=true)
-    temp..set(section="Section", "Key", "value")
+    temp.set(section="Section", "Key", "value")
     temp
   }
   inspect(ini.get(section="Section", "Key"), content="Some(\"value\")")
@@ -289,8 +289,8 @@ test "INIFile::get/case_sensitivity" {
 test "INIFile::get/empty_strings" {
   let ini = {
     let temp = IniFile::new()
-    temp..set(section="", "key", "value")
-    temp..set(section="section", "", "value")
+    temp.set(section="", "key", "value")
+    temp.set(section="section", "", "value")
     temp
   }
   inspect(ini.get(section="", "key"), content="Some(\"value\")")
@@ -301,12 +301,12 @@ test "INIFile::get/empty_strings" {
 test "INIFile::get_bool/true_values" {
   let ini = {
     let obj = IniFile::new()
-    obj..set("key1", "true")
-    obj..set("key2", "yes")
-    obj..set("key3", "on")
-    obj..set(section="test", "key4", "TRUE")
-    obj..set(section="test", "key5", "Yes")
-    obj..set(section="test", "key6", "ON")
+    obj.set("key1", "true")
+    obj.set("key2", "yes")
+    obj.set("key3", "on")
+    obj.set(section="test", "key4", "TRUE")
+    obj.set(section="test", "key5", "Yes")
+    obj.set(section="test", "key6", "ON")
     obj
   }
   inspect(ini.get_bool("key1"), content="Some(true)")

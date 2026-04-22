@@ -208,7 +208,7 @@ fn IniParseState::handle_section_char(
       let section_name = self.ctx.buffer.to_string().trim()
       let section_name = self.lower_if_needed(section_name.to_string())
       self.ctx.current_section = Section::NamedSection(section_name)
-      if not(self.ctx.sections.contains(self.ctx.current_section)) {
+      if !self.ctx.sections.contains(self.ctx.current_section) {
         self.ctx.sections.set(self.ctx.current_section, @hashmap.new())
       }
       self.phase = Start
@@ -245,7 +245,7 @@ fn IniParseState::handle_key_char(
     }
     '\n' | ';' | '#' => {
       let key = self.ctx.buffer.to_string().trim()
-      if not(key.is_empty()) {
+      if !key.is_empty() {
         let key = self.lower_if_needed(key.to_string())
         self.ctx.key = key
         self.ctx.buffer.reset()
@@ -323,7 +323,7 @@ fn IniParseState::handle_value_char(
   }
   if c == '\\' {
     self.escape_state = EscapeState::Escape
-    self.last_char_is_backslash = not(self.last_char_is_backslash) // handle consecutive backslashes
+    self.last_char_is_backslash = !self.last_char_is_backslash // handle consecutive backslashes
     return self
   }
   match c {
@@ -386,7 +386,7 @@ fn IniParseState::handle_value_char(
     _ if c.is_whitespace() => {
       match self.phase {
         ReadingValue(ReadingValueState::None) =>
-          if not(self.ctx.buffer.is_empty()) {
+          if !self.ctx.buffer.is_empty() {
             self.ctx.buffer.write_char(c)
           }
         ReadingValue(ReadingValueState::SingleQuote) =>
@@ -437,7 +437,7 @@ fn IniParseState::commit_value(
   }
   let section = self.ctx.sections.get(self.ctx.current_section).unwrap()
   let key = self.ctx.key
-  guard not(key.is_blank()) else {
+  guard !key.is_blank() else {
     raise IniParseError::ValueWithoutSection(
       line=self.ctx.line,
       col=self.ctx.col,

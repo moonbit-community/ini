@@ -172,7 +172,7 @@ pub fn IniFile::to_string(self : IniFile) -> String {
       '#' => "\\#"
       '=' => "\\="
       ':' => "\\:"
-      _ if c.is_control() || c.is_whitespace() || not(c.is_printable()) => {
+      _ if c.is_control() || c.is_whitespace() || !c.is_printable() => {
         let unicode = c.to_int().to_string(radix=16)
         guard unicode.length() <= 4 else {
           abort("Unicode escape sequence too long")

@@ -407,7 +407,7 @@ test "INIFile::to_string/escape_special_characters" {
   let ini1 = IniFile::new()
   kvs
   .iter()
-  .each((kv) => {
+  .each(kv => {
     let (key, value) = kv
     sections.iter().each(fn(section) { ini1.set(section~, key, value) })
   })
@@ -415,11 +415,11 @@ test "INIFile::to_string/escape_special_characters" {
   let ini2 = parse(output)
   kvs
   .iter()
-  .each((kv) => {
+  .each(kv => {
     let (key, _) = kv
     sections
     .iter()
-    .each((section) => {
+    .each(section => {
       let ini1_value = ini1.get(section~, key)
       let ini2_value = ini2.get(section~, key)
       inspect(ini1_value == ini2_value, content="true")

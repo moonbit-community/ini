@@ -280,7 +280,7 @@ fn IniParseState::handle_value_char(
         state.left -= 1
         if state.left == 0 {
           // it must be 4 digits hex
-          let code = try! @strconv.parse_int(state.hex.to_string(), base=16)
+          let code = try! @string.parse_int(state.hex.to_string(), base=16)
           self.ctx.buffer.write_char(Int::unsafe_to_char(code))
           self.escape_state = EscapeState::None
           self.last_char_is_backslash = false

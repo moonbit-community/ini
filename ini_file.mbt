@@ -19,7 +19,7 @@ struct IniFile {
 
 ///|
 pub fn IniFile::new(is_case_sensitive? : Bool = false) -> IniFile {
-  IniFile::{ sections: @hashmap.new(), is_case_sensitive }
+  IniFile::{ sections: @hashmap.new(), is_case_sensitive, }
 }
 
 ///|
@@ -27,7 +27,7 @@ fn IniFile::new_with_sections(
   sections : @hashmap.HashMap[Section, @hashmap.HashMap[Key, Value]],
   is_case_sensitive? : Bool = false,
 ) -> IniFile {
-  IniFile::{ sections, is_case_sensitive }
+  IniFile::{ sections, is_case_sensitive, }
 }
 
 ///|
@@ -247,8 +247,18 @@ test "INIFile::get/basic_functionality" {
     temp.set("key2", "value2")
     temp
   }
-  inspect(ini.get(section="section1", "key1"), content="Some(\"value1\")")
-  inspect(ini.get("key2"), content="Some(\"value2\")")
+  inspect(
+    ini.get(section="section1", "key1"),
+    content=(
+      #|Some(value1)
+    ),
+  )
+  inspect(
+    ini.get("key2"),
+    content=(
+      #|Some(value2)
+    ),
+  )
   inspect(ini.get(section="nonexistent", "key1"), content="None")
   inspect(ini.get("nonexistent"), content="None")
 }
@@ -260,7 +270,12 @@ test "INIFile::get/case_sensitivity" {
     temp..set(section="Section", "Key", "value")
     temp
   }
-  inspect(ini.get(section="Section", "Key"), content="Some(\"value\")")
+  inspect(
+    ini.get(section="Section", "Key"),
+    content=(
+      #|Some(value)
+    ),
+  )
   inspect(ini.get(section="section", "Key"), content="None")
   inspect(ini.get(section="Section", "key"), content="None")
 }
@@ -273,8 +288,18 @@ test "INIFile::get/empty_strings" {
     temp..set(section="section", "", "value")
     temp
   }
-  inspect(ini.get(section="", "key"), content="Some(\"value\")")
-  inspect(ini.get(section="section", ""), content="Some(\"value\")")
+  inspect(
+    ini.get(section="", "key"),
+    content=(
+      #|Some(value)
+    ),
+  )
+  inspect(
+    ini.get(section="section", ""),
+    content=(
+      #|Some(value)
+    ),
+  )
 }
 
 ///|
@@ -327,9 +352,19 @@ test "INIFile::set/basic_functionality" {
     ini.set("key", "value")
     ini
   }
-  inspect(ini.get("key"), content="Some(\"value\")")
+  inspect(
+    ini.get("key"),
+    content=(
+      #|Some(value)
+    ),
+  )
   ini.set(section="section", "key", "value")
-  inspect(ini.get(section="section", "key"), content="Some(\"value\")")
+  inspect(
+    ini.get(section="section", "key"),
+    content=(
+      #|Some(value)
+    ),
+  )
 }
 
 ///|
@@ -340,8 +375,18 @@ test "INIFile::set/case_sensitivity" {
     ini.set(section="section", "key", "value2")
     ini
   }
-  inspect(ini.get(section="Section", "Key"), content="Some(\"value1\")")
-  inspect(ini.get(section="section", "key"), content="Some(\"value2\")")
+  inspect(
+    ini.get(section="Section", "Key"),
+    content=(
+      #|Some(value1)
+    ),
+  )
+  inspect(
+    ini.get(section="section", "key"),
+    content=(
+      #|Some(value2)
+    ),
+  )
 }
 
 ///|
@@ -352,11 +397,21 @@ test "INIFile::set/overwrite" {
     temp.set("key", "value2")
     temp
   }
-  inspect(ini.get("key"), content="Some(\"value2\")")
+  inspect(
+    ini.get("key"),
+    content=(
+      #|Some(value2)
+    ),
+  )
   ini
   ..set(section="section", "key", "value1")
   .set(section="section", "key", "value2")
-  inspect(ini.get(section="section", "key"), content="Some(\"value2\")")
+  inspect(
+    ini.get(section="section", "key"),
+    content=(
+      #|Some(value2)
+    ),
+  )
 }
 
 ///|

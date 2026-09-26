@@ -256,7 +256,7 @@ fn IniParseState::handle_value_char(
         state.left -= 1
         if state.left == 0 {
           // it must be 4 digits hex
-          let code = try! @strconv.parse_int(state.hex.to_string(), base=16)
+          let code = try! @string.parse_int(state.hex.to_string(), base=16)
           self.ctx.buffer.write_char(Int::unsafe_to_char(code))
           self.escape_state = EscapeState::None
           self.last_char_is_backslash = false
@@ -285,7 +285,7 @@ fn IniParseState::handle_value_char(
         ':' => self.ctx.buffer.write_char(':')
         'x' => {
           let hex = StringBuilder::new()
-          self.escape_state = EscapeState::Hex(EscapeStateHex::{ hex, left: 4 })
+          self.escape_state = EscapeState::Hex(EscapeStateHex::{ hex, left: 4, })
           self.last_char_is_backslash = false
           return self
         }
@@ -488,7 +488,12 @@ test "IniParseState::process_char/global_section_edge_cases" {
   inspect(state.process_char('G').phase, content="ReadingSection")
   let tmp = state.process_char(']')
   inspect(tmp.phase, content="Start")
-  inspect(tmp.ctx.current_section, content="NamedSection(\"g\")")
+  inspect(
+    tmp.ctx.current_section,
+    content=(
+      #|NamedSection(g)
+    ),
+  )
   inspect(state.process_char('[').phase, content="ReadingSection")
   try {
     let _ = tmp.process_char('#')
@@ -537,7 +542,12 @@ test "IniParseState::handle_section_char/basic" {
     .handle_section_char('s')
     .handle_section_char('t')
     .handle_section_char(']')
-  inspect(state.ctx.current_section, content="NamedSection(\"test\")")
+  inspect(
+    state.ctx.current_section,
+    content=(
+      #|NamedSection(test)
+    ),
+  )
   inspect(state.phase, content="Start")
 }
 
@@ -600,8 +610,18 @@ test "IniParseState::handle_section_char/duplicate_section" {
     ),
   )
   let section = state.ctx.sections.get(Section::NamedSection("test")).unwrap()
-  inspect(section.get("key"), content="Some(Value(\"bar\"))")
-  inspect(section.get("key2"), content="Some(Value(\"value\"))")
+  inspect(
+    section.get("key"),
+    content=(
+      #|Some(Value(bar))
+    ),
+  )
+  inspect(
+    section.get("key2"),
+    content=(
+      #|Some(Value(value))
+    ),
+  )
 }
 
 ///|
@@ -651,7 +671,12 @@ test "IniParseState::handle_key_char/valueless_key" {
   let section = state.ctx.sections.get(state.ctx.current_section)
   inspect(section is Some(_), content="true")
   let value = section.unwrap().get("key")
-  inspect(value, content="Some(Value(\"\"))")
+  inspect(
+    value,
+    content=(
+      #|Some(Value())
+    ),
+  )
 }
 
 ///|
@@ -664,7 +689,9 @@ test "IniParseState::handle_key_char/comment_in_key" {
   inspect(state.phase, content="Start")
   inspect(
     state.ctx.sections.get(Section::Global).unwrap().get("key").unwrap(),
-    content="Value(\"\")",
+    content=(
+      #|Value()
+    ),
   )
 }
 

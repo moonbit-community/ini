@@ -110,7 +110,7 @@ test {
   inspect(
     host,
     content=(
-      #|Some("localhost")
+      #|Some(localhost)
     ),
   )
   let foo_enabled = ini.get_bool(section="feature", "foo")

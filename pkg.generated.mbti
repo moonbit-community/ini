@@ -31,4 +31,3 @@ pub fn IniParseState::parse(Self, String) -> Self raise IniParseError
 // Type aliases
 
 // Traits
-

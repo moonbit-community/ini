@@ -107,14 +107,14 @@ test {
     #|foo=true
   let ini = @ini.parse(content)
   let host = ini.get(section="server", "host")
-  inspect(
+  debug_inspect(
     host,
     content=(
-      #|Some(localhost)
+      #|Some("localhost")
     ),
   )
   let foo_enabled = ini.get_bool(section="feature", "foo")
-  inspect(foo_enabled, content="Some(true)")
+  debug_inspect(foo_enabled, content="Some(true)")
 }
 ```
 

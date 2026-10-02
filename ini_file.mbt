@@ -2,13 +2,13 @@
 priv enum Section {
   Global
   NamedSection(String)
-} derive(Eq, Hash, Show)
+} derive(Eq, Hash, Debug)
 
 ///|
 priv struct Key(String) derive(Eq, Hash)
 
 ///|
-priv struct Value(String) derive(Show)
+priv struct Value(String) derive(Debug)
 
 ///|
 struct IniFile {
@@ -19,7 +19,7 @@ struct IniFile {
 
 ///|
 pub fn IniFile::new(is_case_sensitive? : Bool = false) -> IniFile {
-  IniFile::{ sections: @hashmap.new(), is_case_sensitive, }
+  IniFile::{ sections: @hashmap.HashMap([]), is_case_sensitive, }
 }
 
 ///|
@@ -99,7 +99,7 @@ fn IniFile::get_section(
   match section_map {
     None =>
       if create_if_not_exists {
-        let new_section = @hashmap.new()
+        let new_section = @hashmap.HashMap([])
         self.sections.set(section, new_section)
         Some(new_section)
       } else {
@@ -152,7 +152,7 @@ pub fn IniFile::to_string(self : IniFile) -> String {
       '#' => "\\#"
       '=' => "\\="
       ':' => "\\:"
-      _ if c.is_control() || c.is_whitespace() || not(c.is_printable()) => {
+      _ if c.is_control() || c.is_whitespace() || !c.is_printable() => {
         let unicode = c.to_int().to_string(radix=16)
         guard unicode.length() <= 4 else {
           abort("Unicode escape sequence too long")
@@ -170,19 +170,19 @@ pub fn IniFile::to_string(self : IniFile) -> String {
 
   fn escape_value(value : String) -> String {
     let str_list = value.iter().collect().map(escape_char)
-    let builder = StringBuilder::new()
+    let builder = StringBuilder()
     str_list.each(fn(c) { builder.write_string(c) })
     builder.to_string()
   }
 
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   // Global section first
   let global_section = self.sections.get(Section::Global)
   if global_section is Some(_) {
     global_section
     .unwrap()
     .iter()
-    .each(fn(kv) {
+    .each(kv => {
       let (key, value) = kv
       let Key(key) = key
       let Value(value) = value
@@ -195,7 +195,7 @@ pub fn IniFile::to_string(self : IniFile) -> String {
   // Other sections
   self.sections
   .iter()
-  .each(fn(section) {
+  .each(section => {
     let (section, map) = section
     match section {
       Section::Global => return
@@ -206,7 +206,7 @@ pub fn IniFile::to_string(self : IniFile) -> String {
         buf.write_char('\n')
         map
         .iter()
-        .each(fn(kv) {
+        .each(kv => {
           let (key, value) = kv
           let Key(key) = key
           let Value(value) = value
@@ -247,57 +247,57 @@ test "INIFile::get/basic_functionality" {
     temp.set("key2", "value2")
     temp
   }
-  inspect(
+  debug_inspect(
     ini.get(section="section1", "key1"),
     content=(
-      #|Some(value1)
+      #|Some("value1")
     ),
   )
-  inspect(
+  debug_inspect(
     ini.get("key2"),
     content=(
-      #|Some(value2)
+      #|Some("value2")
     ),
   )
-  inspect(ini.get(section="nonexistent", "key1"), content="None")
-  inspect(ini.get("nonexistent"), content="None")
+  debug_inspect(ini.get(section="nonexistent", "key1"), content="None")
+  debug_inspect(ini.get("nonexistent"), content="None")
 }
 
 ///|
 test "INIFile::get/case_sensitivity" {
   let ini = {
     let temp = IniFile::new(is_case_sensitive=true)
-    temp..set(section="Section", "Key", "value")
+    temp.set(section="Section", "Key", "value")
     temp
   }
-  inspect(
+  debug_inspect(
     ini.get(section="Section", "Key"),
     content=(
-      #|Some(value)
+      #|Some("value")
     ),
   )
-  inspect(ini.get(section="section", "Key"), content="None")
-  inspect(ini.get(section="Section", "key"), content="None")
+  debug_inspect(ini.get(section="section", "Key"), content="None")
+  debug_inspect(ini.get(section="Section", "key"), content="None")
 }
 
 ///|
 test "INIFile::get/empty_strings" {
   let ini = {
     let temp = IniFile::new()
-    temp..set(section="", "key", "value")
-    temp..set(section="section", "", "value")
+    temp.set(section="", "key", "value")
+    temp.set(section="section", "", "value")
     temp
   }
-  inspect(
+  debug_inspect(
     ini.get(section="", "key"),
     content=(
-      #|Some(value)
+      #|Some("value")
     ),
   )
-  inspect(
+  debug_inspect(
     ini.get(section="section", ""),
     content=(
-      #|Some(value)
+      #|Some("value")
     ),
   )
 }
@@ -306,20 +306,20 @@ test "INIFile::get/empty_strings" {
 test "INIFile::get_bool/true_values" {
   let ini = {
     let obj = IniFile::new()
-    obj..set("key1", "true")
-    obj..set("key2", "yes")
-    obj..set("key3", "on")
-    obj..set(section="test", "key4", "TRUE")
-    obj..set(section="test", "key5", "Yes")
-    obj..set(section="test", "key6", "ON")
+    obj.set("key1", "true")
+    obj.set("key2", "yes")
+    obj.set("key3", "on")
+    obj.set(section="test", "key4", "TRUE")
+    obj.set(section="test", "key5", "Yes")
+    obj.set(section="test", "key6", "ON")
     obj
   }
-  inspect(ini.get_bool("key1"), content="Some(true)")
-  inspect(ini.get_bool("key2"), content="Some(true)")
-  inspect(ini.get_bool("key3"), content="Some(true)")
-  inspect(ini.get_bool(section="test", "key4"), content="Some(true)")
-  inspect(ini.get_bool(section="test", "key5"), content="Some(true)")
-  inspect(ini.get_bool(section="test", "key6"), content="Some(true)")
+  debug_inspect(ini.get_bool("key1"), content="Some(true)")
+  debug_inspect(ini.get_bool("key2"), content="Some(true)")
+  debug_inspect(ini.get_bool("key3"), content="Some(true)")
+  debug_inspect(ini.get_bool(section="test", "key4"), content="Some(true)")
+  debug_inspect(ini.get_bool(section="test", "key5"), content="Some(true)")
+  debug_inspect(ini.get_bool(section="test", "key6"), content="Some(true)")
 }
 
 ///|
@@ -332,17 +332,17 @@ test "INIFile::get_bool/false_values" {
     ini.set("key4", "invalid")
     ini
   }
-  inspect(ini.get_bool("key1"), content="Some(false)")
-  inspect(ini.get_bool("key2"), content="Some(false)")
-  inspect(ini.get_bool("key3"), content="Some(false)")
-  inspect(ini.get_bool("key4"), content="Some(false)")
+  debug_inspect(ini.get_bool("key1"), content="Some(false)")
+  debug_inspect(ini.get_bool("key2"), content="Some(false)")
+  debug_inspect(ini.get_bool("key3"), content="Some(false)")
+  debug_inspect(ini.get_bool("key4"), content="Some(false)")
 }
 
 ///|
 test "INIFile::get_bool/nonexistent_values" {
   let ini = IniFile::new()
-  inspect(ini.get_bool(section="nonexistent", "key"), content="None")
-  inspect(ini.get_bool("nonexistent"), content="None")
+  debug_inspect(ini.get_bool(section="nonexistent", "key"), content="None")
+  debug_inspect(ini.get_bool("nonexistent"), content="None")
 }
 
 ///|
@@ -352,17 +352,17 @@ test "INIFile::set/basic_functionality" {
     ini.set("key", "value")
     ini
   }
-  inspect(
+  debug_inspect(
     ini.get("key"),
     content=(
-      #|Some(value)
+      #|Some("value")
     ),
   )
   ini.set(section="section", "key", "value")
-  inspect(
+  debug_inspect(
     ini.get(section="section", "key"),
     content=(
-      #|Some(value)
+      #|Some("value")
     ),
   )
 }
@@ -375,16 +375,16 @@ test "INIFile::set/case_sensitivity" {
     ini.set(section="section", "key", "value2")
     ini
   }
-  inspect(
+  debug_inspect(
     ini.get(section="Section", "Key"),
     content=(
-      #|Some(value1)
+      #|Some("value1")
     ),
   )
-  inspect(
+  debug_inspect(
     ini.get(section="section", "key"),
     content=(
-      #|Some(value2)
+      #|Some("value2")
     ),
   )
 }
@@ -397,19 +397,19 @@ test "INIFile::set/overwrite" {
     temp.set("key", "value2")
     temp
   }
-  inspect(
+  debug_inspect(
     ini.get("key"),
     content=(
-      #|Some(value2)
+      #|Some("value2")
     ),
   )
   ini
   ..set(section="section", "key", "value1")
   .set(section="section", "key", "value2")
-  inspect(
+  debug_inspect(
     ini.get(section="section", "key"),
     content=(
-      #|Some(value2)
+      #|Some("value2")
     ),
   )
 }
@@ -442,19 +442,19 @@ test "INIFile::to_string/escape_special_characters" {
   let ini1 = IniFile::new()
   kvs
   .iter()
-  .each(fn(kv) {
+  .each(kv => {
     let (key, value) = kv
-    sections.iter().each(fn(section) { ini1.set(section~, key, value) })
+    sections.iter().each(section => ini1.set(section~, key, value))
   })
   let output = ini1.to_string()
   let ini2 = parse(output)
   kvs
   .iter()
-  .each(fn(kv) {
+  .each(kv => {
     let (key, _) = kv
     sections
     .iter()
-    .each(fn(section) {
+    .each(section => {
       let ini1_value = ini1.get(section~, key)
       let ini2_value = ini2.get(section~, key)
       inspect(ini1_value == ini2_value, content="true")

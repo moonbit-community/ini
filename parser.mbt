@@ -1,19 +1,19 @@
 ///|
 pub suberror IniParseError {
-  UnexpectedEqualSign(line~ : Int, col~ : Int)
-  EmptySection(line~ : Int, col~ : Int)
-  UnclosedSection(line~ : Int, col~ : Int)
-  ValueWithoutSection(line~ : Int, col~ : Int)
-  QuoteMismatch(line~ : Int, col~ : Int)
-  QuoteNotClosed(line~ : Int, col~ : Int)
+  UnexpectedEqualSign(line~ : Int32, col~ : Int32)
+  EmptySection(line~ : Int32, col~ : Int32)
+  UnclosedSection(line~ : Int32, col~ : Int32)
+  ValueWithoutSection(line~ : Int32, col~ : Int32)
+  QuoteMismatch(line~ : Int32, col~ : Int32)
+  QuoteNotClosed(line~ : Int32, col~ : Int32)
 }
 
 ///|
 priv struct ParseContext {
   mut current_section : Section
   sections : @hashmap.HashMap[Section, @hashmap.HashMap[Key, Value]]
-  mut line : Int
-  mut col : Int
+  mut line : Int32
+  mut col : Int32
   mut key : String
   buffer : StringBuilder
 }
@@ -23,7 +23,7 @@ priv enum ReadingValueState {
   None
   SingleQuote
   DoubleQuote
-} derive(Show)
+} derive(Debug)
 
 ///|
 priv enum ParsePhase {
@@ -32,12 +32,12 @@ priv enum ParsePhase {
   ReadingKey
   ReadingValue(ReadingValueState)
   InComment
-} derive(Show)
+} derive(Debug)
 
 ///|
 priv struct EscapeStateHex {
   hex : StringBuilder
-  mut left : Int
+  mut left : Int32
 }
 
 ///|
@@ -66,15 +66,15 @@ fn IniParseState::lower_if_needed(self : IniParseState, s : String) -> String {
 }
 
 ///|
-pub fn IniParseState::new(is_case_sensitive? : Bool = false) -> IniParseState {
+pub fn IniParseState::new(is_case_sensitive~ : Bool = false) -> IniParseState {
   IniParseState::{
     ctx: ParseContext::{
       current_section: Section::Global,
-      sections: @hashmap.from_array([(Section::Global, @hashmap.new())]),
+      sections: @hashmap.from_array([(Section::Global, @hashmap.HashMap([]))]),
       line: 1,
       col: 1,
       key: "",
-      buffer: StringBuilder::new(),
+      buffer: StringBuilder(),
     },
     phase: ParsePhase::Start,
     is_case_sensitive,
@@ -86,7 +86,7 @@ pub fn IniParseState::new(is_case_sensitive? : Bool = false) -> IniParseState {
 ///|
 pub fn parse(
   str : String,
-  is_case_sensitive? : Bool = false,
+  is_case_sensitive~ : Bool = false,
 ) -> IniFile raise IniParseError {
   IniParseState::new(is_case_sensitive~).parse(str).finish()
 }
@@ -182,10 +182,10 @@ fn IniParseState::handle_section_char(
         raise IniParseError::EmptySection(line=self.ctx.line, col=self.ctx.col)
       }
       let section_name = self.ctx.buffer.to_string().trim()
-      let section_name = self.lower_if_needed(section_name.to_string())
+      let section_name = self.lower_if_needed(section_name.to_owned())
       self.ctx.current_section = Section::NamedSection(section_name)
-      if not(self.ctx.sections.contains(self.ctx.current_section)) {
-        self.ctx.sections.set(self.ctx.current_section, @hashmap.new())
+      if !self.ctx.sections.contains(self.ctx.current_section) {
+        self.ctx.sections.set(self.ctx.current_section, @hashmap.HashMap([]))
       }
       self.phase = Start
       self
@@ -213,7 +213,7 @@ fn IniParseState::handle_key_char(
         )
       }
       let key = self.ctx.buffer.to_string().trim()
-      let key = self.lower_if_needed(key.to_string())
+      let key = self.lower_if_needed(key.to_owned())
       self.ctx.buffer.reset()
       self.phase = ReadingValue(ReadingValueState::None)
       self.ctx.key = key
@@ -221,8 +221,8 @@ fn IniParseState::handle_key_char(
     }
     '\n' | ';' | '#' => {
       let key = self.ctx.buffer.to_string().trim()
-      if not(key.is_empty()) {
-        let key = self.lower_if_needed(key.to_string())
+      if !key.is_empty() {
+        let key = self.lower_if_needed(key.to_owned())
         self.ctx.key = key
         self.ctx.buffer.reset()
         ignore(self.commit_value())
@@ -257,7 +257,7 @@ fn IniParseState::handle_value_char(
         if state.left == 0 {
           // it must be 4 digits hex
           let code = try! @string.parse_int(state.hex.to_string(), base=16)
-          self.ctx.buffer.write_char(Int::unsafe_to_char(code))
+          self.ctx.buffer.write_char(Int32::unsafe_to_char(code))
           self.escape_state = EscapeState::None
           self.last_char_is_backslash = false
         }
@@ -284,7 +284,7 @@ fn IniParseState::handle_value_char(
         '=' => self.ctx.buffer.write_char('=')
         ':' => self.ctx.buffer.write_char(':')
         'x' => {
-          let hex = StringBuilder::new()
+          let hex = StringBuilder()
           self.escape_state = EscapeState::Hex(EscapeStateHex::{ hex, left: 4, })
           self.last_char_is_backslash = false
           return self
@@ -299,7 +299,7 @@ fn IniParseState::handle_value_char(
   }
   if c == '\\' {
     self.escape_state = EscapeState::Escape
-    self.last_char_is_backslash = not(self.last_char_is_backslash) // handle consecutive backslashes
+    self.last_char_is_backslash = !self.last_char_is_backslash // handle consecutive backslashes
     return self
   }
   match c {
@@ -362,7 +362,7 @@ fn IniParseState::handle_value_char(
     _ if c.is_whitespace() => {
       match self.phase {
         ReadingValue(ReadingValueState::None) =>
-          if not(self.ctx.buffer.is_empty()) {
+          if !self.ctx.buffer.is_empty() {
             self.ctx.buffer.write_char(c)
           }
         ReadingValue(ReadingValueState::SingleQuote) =>
@@ -405,15 +405,15 @@ fn IniParseState::commit_value(
   self : IniParseState,
   // If true, drop the last space in the value
   // this is used to handle the case when a comment is at the end of the line
-  drop_last_one_space? : Bool = false,
+  drop_last_one_space~ : Bool = false,
 ) -> IniParseState raise IniParseError {
   let mut value = self.ctx.buffer.to_string()
   if drop_last_one_space && value is [.. rest, ch] && ch.is_whitespace() {
-    value = rest.to_string()
+    value = rest.to_owned()
   }
   let section = self.ctx.sections.get(self.ctx.current_section).unwrap()
   let key = self.ctx.key
-  guard not(key.is_blank()) else {
+  guard !key.is_blank() else {
     raise IniParseError::ValueWithoutSection(
       line=self.ctx.line,
       col=self.ctx.col,
@@ -431,15 +431,15 @@ test "IniParseState::new/default_settings" {
   inspect(state.ctx.line, content="1")
   inspect(state.ctx.col, content="1")
   inspect(state.ctx.key, content="")
-  inspect(state.phase, content="Start")
-  inspect(state.ctx.current_section, content="Global")
+  debug_inspect(state.phase, content="Start")
+  debug_inspect(state.ctx.current_section, content="Global")
 }
 
 ///|
 test "IniParseState::new/case_sensitive" {
   let state = IniParseState::new(is_case_sensitive=true)
   inspect(state.is_case_sensitive, content="true")
-  inspect(state.ctx.current_section, content="Global")
+  debug_inspect(state.ctx.current_section, content="Global")
 }
 
 ///|
@@ -453,13 +453,13 @@ test "IniParseState::process_char/start_phase" {
   let state = IniParseState::new()
   // Test transition from Start to ReadingSection
   let state = state.process_char('[')
-  inspect(state.phase, content="ReadingSection")
+  debug_inspect(state.phase, content="ReadingSection")
   // Test transition from Start to InComment
   let state = IniParseState::new().process_char(';')
-  inspect(state.phase, content="InComment")
+  debug_inspect(state.phase, content="InComment")
   // Test transition from Start to ReadingKey
   let state = IniParseState::new().process_char('a')
-  inspect(state.phase, content="ReadingKey")
+  debug_inspect(state.phase, content="ReadingKey")
 }
 
 ///|
@@ -484,17 +484,17 @@ test "panic IniParseState::process_char/unexpected_equal_sign" {
 ///|
 test "IniParseState::process_char/global_section_edge_cases" {
   let state = IniParseState::new()
-  inspect(state.process_char('[').phase, content="ReadingSection")
-  inspect(state.process_char('G').phase, content="ReadingSection")
+  debug_inspect(state.process_char('[').phase, content="ReadingSection")
+  debug_inspect(state.process_char('G').phase, content="ReadingSection")
   let tmp = state.process_char(']')
-  inspect(tmp.phase, content="Start")
-  inspect(
+  debug_inspect(tmp.phase, content="Start")
+  debug_inspect(
     tmp.ctx.current_section,
     content=(
-      #|NamedSection(g)
+      #|NamedSection("g")
     ),
   )
-  inspect(state.process_char('[').phase, content="ReadingSection")
+  debug_inspect(state.process_char('[').phase, content="ReadingSection")
   try {
     let _ = tmp.process_char('#')
     assert_true(false) // This shouldn't happen according to the test expectation
@@ -515,7 +515,7 @@ test "panic IniParseState::process_char/unclosed_section_newline" {
 test "IniParseState::handle_start/reading_section" {
   let state = IniParseState::new()
   let updated_state = state.handle_start('[')
-  inspect(updated_state.phase, content="ReadingSection")
+  debug_inspect(updated_state.phase, content="ReadingSection")
   inspect(updated_state.ctx.buffer.is_empty(), content="true")
 }
 
@@ -529,7 +529,7 @@ test "panic IniParseState::handle_start/unexpected_equal_sign" {
 test "IniParseState::handle_start/in_comment" {
   let state = IniParseState::new()
   let updated_state = state.handle_start('#')
-  inspect(updated_state.phase, content="InComment")
+  debug_inspect(updated_state.phase, content="InComment")
 }
 
 ///|
@@ -542,13 +542,13 @@ test "IniParseState::handle_section_char/basic" {
     .handle_section_char('s')
     .handle_section_char('t')
     .handle_section_char(']')
-  inspect(
+  debug_inspect(
     state.ctx.current_section,
     content=(
-      #|NamedSection(test)
+      #|NamedSection("test")
     ),
   )
-  inspect(state.phase, content="Start")
+  debug_inspect(state.phase, content="Start")
 }
 
 ///|
@@ -610,16 +610,16 @@ test "IniParseState::handle_section_char/duplicate_section" {
     ),
   )
   let section = state.ctx.sections.get(Section::NamedSection("test")).unwrap()
-  inspect(
+  debug_inspect(
     section.get("key"),
     content=(
-      #|Some(Value(bar))
+      #|Some(Value("bar"))
     ),
   )
-  inspect(
+  debug_inspect(
     section.get("key2"),
     content=(
-      #|Some(Value(value))
+      #|Some(Value("value"))
     ),
   )
 }
@@ -632,7 +632,7 @@ test "IniParseState::handle_key_char/basic" {
   let state = state.handle_key_char('y')
   let state = state.handle_key_char('=')
   inspect(state.ctx.key, content="key")
-  inspect(state.phase, content="ReadingValue(None)")
+  debug_inspect(state.phase, content="ReadingValue(None)")
   inspect(state.ctx.buffer.is_empty(), content="true")
 }
 
@@ -667,14 +667,14 @@ test "IniParseState::handle_key_char/valueless_key" {
   let state = state.handle_key_char('y')
   let state = state.handle_key_char('\n')
   inspect(state.ctx.key, content="key")
-  inspect(state.phase, content="Start")
+  debug_inspect(state.phase, content="Start")
   let section = state.ctx.sections.get(state.ctx.current_section)
   inspect(section is Some(_), content="true")
   let value = section.unwrap().get("key")
-  inspect(
+  debug_inspect(
     value,
     content=(
-      #|Some(Value())
+      #|Some(Value(""))
     ),
   )
 }
@@ -686,11 +686,11 @@ test "IniParseState::handle_key_char/comment_in_key" {
   let state = state.handle_key_char('e')
   let state = state.handle_key_char('y')
   let state = state.handle_key_char(';')
-  inspect(state.phase, content="Start")
-  inspect(
+  debug_inspect(state.phase, content="Start")
+  debug_inspect(
     state.ctx.sections.get(Section::Global).unwrap().get("key").unwrap(),
     content=(
-      #|Value()
+      #|Value("")
     ),
   )
 }
@@ -732,11 +732,11 @@ test "IniParseState::handle_comment/basic" {
   let state = IniParseState::new().parse("[section]\nkey=value#")
   // Test non-newline characters should keep the state unchanged
   let state = state.handle_comment('a')
-  inspect(state.phase, content="InComment")
+  debug_inspect(state.phase, content="InComment")
   let state = IniParseState::new().parse("[section]\nkey=value#")
   // Test newline should reset the line
   let state = state.handle_comment('\n')
-  inspect(state.phase, content="Start")
+  debug_inspect(state.phase, content="Start")
   inspect(state.ctx.buffer.is_empty(), content="true")
 }
 
@@ -744,11 +744,11 @@ test "IniParseState::handle_comment/basic" {
 test "IniParseState::handle_comment/special_chars" {
   let state = IniParseState::new().parse("[section]\nkey=value#")
   // Test special characters should not affect the state
-  inspect(state.handle_comment('#').phase, content="InComment")
-  inspect(state.handle_comment(';').phase, content="InComment")
-  inspect(state.handle_comment('=').phase, content="InComment")
-  inspect(state.handle_comment('[').phase, content="InComment")
-  inspect(state.handle_comment(']').phase, content="InComment")
+  debug_inspect(state.handle_comment('#').phase, content="InComment")
+  debug_inspect(state.handle_comment(';').phase, content="InComment")
+  debug_inspect(state.handle_comment('=').phase, content="InComment")
+  debug_inspect(state.handle_comment('[').phase, content="InComment")
+  debug_inspect(state.handle_comment(']').phase, content="InComment")
 }
 
 ///|

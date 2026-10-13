@@ -18,14 +18,14 @@ struct IniFile {
 }
 
 ///|
-pub fn IniFile::new(is_case_sensitive? : Bool = false) -> IniFile {
+pub fn IniFile::new(is_case_sensitive~ : Bool = false) -> IniFile {
   IniFile::{ sections: @hashmap.HashMap([]), is_case_sensitive, }
 }
 
 ///|
 fn IniFile::new_with_sections(
   sections : @hashmap.HashMap[Section, @hashmap.HashMap[Key, Value]],
-  is_case_sensitive? : Bool = false,
+  is_case_sensitive~ : Bool = false,
 ) -> IniFile {
   IniFile::{ sections, is_case_sensitive, }
 }
@@ -43,7 +43,7 @@ fn IniFile::lower_if_needed(self : IniFile, s : String) -> String {
 /// get is a alias for get_string
 pub fn IniFile::get(
   self : IniFile,
-  section? : String = "",
+  section~ : String = "",
   key : String,
 ) -> String? {
   self.get_string(section~, key)
@@ -52,7 +52,7 @@ pub fn IniFile::get(
 ///|
 pub fn IniFile::get_string(
   self : IniFile,
-  section? : String = "",
+  section~ : String = "",
   key : String,
 ) -> String? {
   let section_map = self.get_section(
@@ -74,7 +74,7 @@ pub fn IniFile::get_string(
 ///|
 pub fn IniFile::get_bool(
   self : IniFile,
-  section? : String = "",
+  section~ : String = "",
   key : String,
 ) -> Bool? {
   let value = self.get_string(section~, key)
@@ -93,7 +93,7 @@ pub fn IniFile::get_bool(
 fn IniFile::get_section(
   self : IniFile,
   section : Section,
-  create_if_not_exists? : Bool = false,
+  create_if_not_exists~ : Bool = false,
 ) -> @hashmap.HashMap[Key, Value]? {
   let section_map = self.sections.get(section)
   match section_map {
@@ -121,7 +121,7 @@ fn IniFile::get_section_or_create(
 ///|
 pub fn IniFile::set(
   self : IniFile,
-  section? : String = "",
+  section~ : String = "",
   key : String,
   value : String,
 ) -> Unit {

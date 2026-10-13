@@ -1,19 +1,19 @@
 ///|
 pub suberror IniParseError {
-  UnexpectedEqualSign(line~ : Int, col~ : Int)
-  EmptySection(line~ : Int, col~ : Int)
-  UnclosedSection(line~ : Int, col~ : Int)
-  ValueWithoutSection(line~ : Int, col~ : Int)
-  QuoteMismatch(line~ : Int, col~ : Int)
-  QuoteNotClosed(line~ : Int, col~ : Int)
+  UnexpectedEqualSign(line~ : Int32, col~ : Int32)
+  EmptySection(line~ : Int32, col~ : Int32)
+  UnclosedSection(line~ : Int32, col~ : Int32)
+  ValueWithoutSection(line~ : Int32, col~ : Int32)
+  QuoteMismatch(line~ : Int32, col~ : Int32)
+  QuoteNotClosed(line~ : Int32, col~ : Int32)
 }
 
 ///|
 priv struct ParseContext {
   mut current_section : Section
   sections : @hashmap.HashMap[Section, @hashmap.HashMap[Key, Value]]
-  mut line : Int
-  mut col : Int
+  mut line : Int32
+  mut col : Int32
   mut key : String
   buffer : StringBuilder
 }
@@ -37,7 +37,7 @@ priv enum ParsePhase {
 ///|
 priv struct EscapeStateHex {
   hex : StringBuilder
-  mut left : Int
+  mut left : Int32
 }
 
 ///|
@@ -66,7 +66,7 @@ fn IniParseState::lower_if_needed(self : IniParseState, s : String) -> String {
 }
 
 ///|
-pub fn IniParseState::new(is_case_sensitive? : Bool = false) -> IniParseState {
+pub fn IniParseState::new(is_case_sensitive~ : Bool = false) -> IniParseState {
   IniParseState::{
     ctx: ParseContext::{
       current_section: Section::Global,
@@ -86,7 +86,7 @@ pub fn IniParseState::new(is_case_sensitive? : Bool = false) -> IniParseState {
 ///|
 pub fn parse(
   str : String,
-  is_case_sensitive? : Bool = false,
+  is_case_sensitive~ : Bool = false,
 ) -> IniFile raise IniParseError {
   IniParseState::new(is_case_sensitive~).parse(str).finish()
 }
@@ -257,7 +257,7 @@ fn IniParseState::handle_value_char(
         if state.left == 0 {
           // it must be 4 digits hex
           let code = try! @string.parse_int(state.hex.to_string(), base=16)
-          self.ctx.buffer.write_char(Int::unsafe_to_char(code))
+          self.ctx.buffer.write_char(Int32::unsafe_to_char(code))
           self.escape_state = EscapeState::None
           self.last_char_is_backslash = false
         }
@@ -405,7 +405,7 @@ fn IniParseState::commit_value(
   self : IniParseState,
   // If true, drop the last space in the value
   // this is used to handle the case when a comment is at the end of the line
-  drop_last_one_space? : Bool = false,
+  drop_last_one_space~ : Bool = false,
 ) -> IniParseState raise IniParseError {
   let mut value = self.ctx.buffer.to_string()
   if drop_last_one_space && value is [.. rest, ch] && ch.is_whitespace() {
